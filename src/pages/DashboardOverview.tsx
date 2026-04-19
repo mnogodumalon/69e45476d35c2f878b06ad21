@@ -4,10 +4,9 @@ import type { Koerpermesswerte, Aktivitaeten, Ernaehrung, Schlafprotokoll, Stimm
 import { LivingAppsService } from '@/services/livingAppsService';
 import { useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { IconAlertCircle, IconTool, IconRefresh, IconCheck, IconPlus, IconPencil, IconTrash, IconScale, IconRun, IconSalad, IconMoon, IconMoodSmile, IconDroplet, IconHeart, IconFlame, IconClock, IconActivity, IconChevronRight } from '@tabler/icons-react';
+import { IconAlertCircle, IconTool, IconRefresh, IconCheck, IconPlus, IconPencil, IconScale, IconRun, IconSalad, IconMoon, IconMoodSmile, IconHeart, IconFlame, IconClock, IconActivity, IconChevronRight } from '@tabler/icons-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { KoerpermesswerteDialog } from '@/components/dialogs/KoerpermesswerteDialog';
 import { AktivitaetenDialog } from '@/components/dialogs/AktivitaetenDialog';
 import { ErnaehrungDialog } from '@/components/dialogs/ErnaehrungDialog';
@@ -73,7 +72,6 @@ export default function DashboardOverview() {
   const [editErnaehrung, setEditErnaehrung] = useState<Ernaehrung | null>(null);
   const [editSchlaf, setEditSchlaf] = useState<Schlafprotokoll | null>(null);
   const [editStimmung, setEditStimmung] = useState<StimmungWohlbefinden | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'heute' | 'trends'>('heute');
 
   // Sort and compute "latest" entries
@@ -147,19 +145,6 @@ export default function DashboardOverview() {
   const totalKalorien = todayErnaehrung.reduce((s, e) => s + (e.fields.kalorien_aufnahme ?? 0), 0);
   const totalAktivMin = todayAktivitaeten.reduce((s, a) => s + (a.fields.dauer_minuten ?? 0), 0);
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      if (deleteTarget.type === 'koerper') await LivingAppsService.deleteKoerpermesswerteEntry(deleteTarget.id);
-      if (deleteTarget.type === 'aktivitaet') await LivingAppsService.deleteAktivitaetenEntry(deleteTarget.id);
-      if (deleteTarget.type === 'ernaehrung') await LivingAppsService.deleteErnaehrungEntry(deleteTarget.id);
-      if (deleteTarget.type === 'schlaf') await LivingAppsService.deleteSchlafprotokollEntry(deleteTarget.id);
-      if (deleteTarget.type === 'stimmung') await LivingAppsService.deleteStimmungWohlbefindenEntry(deleteTarget.id);
-      fetchAll();
-    } finally {
-      setDeleteTarget(null);
-    }
-  };
 
   if (loading) return <DashboardSkeleton />;
   if (error) return <DashboardError error={error} onRetry={fetchAll} />;
@@ -277,7 +262,6 @@ export default function DashboardOverview() {
                           </div>
                         }
                         onEdit={() => { setEditKoerper(k); setOpenDialog('koerper'); }}
-                        onDelete={() => setDeleteTarget({ id: k.record_id, type: 'koerper' })}
                       />
                     ))}
                 </div>
@@ -315,7 +299,6 @@ export default function DashboardOverview() {
                           </div>
                         }
                         onEdit={() => { setEditStimmung(s); setOpenDialog('stimmung'); }}
-                        onDelete={() => setDeleteTarget({ id: s.record_id, type: 'stimmung' })}
                       />
                     ))}
                 </div>
@@ -354,7 +337,6 @@ export default function DashboardOverview() {
                           </div>
                         }
                         onEdit={() => { setEditAktivitaet(a); setOpenDialog('aktivitaet'); }}
-                        onDelete={() => setDeleteTarget({ id: a.record_id, type: 'aktivitaet' })}
                       />
                     ))}
                 </div>
@@ -395,7 +377,6 @@ export default function DashboardOverview() {
                           </div>
                         }
                         onEdit={() => { setEditErnaehrung(e); setOpenDialog('ernaehrung'); }}
-                        onDelete={() => setDeleteTarget({ id: e.record_id, type: 'ernaehrung' })}
                       />
                     ))}
                 </div>
@@ -437,9 +418,6 @@ export default function DashboardOverview() {
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => { setEditSchlaf(s); setOpenDialog('schlaf'); }} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-background transition-colors">
                           <IconPencil size={13} />
-                        </button>
-                        <button onClick={() => setDeleteTarget({ id: s.record_id, type: 'schlaf' })} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-                          <IconTrash size={13} />
                         </button>
                       </div>
                     </div>
@@ -639,13 +617,6 @@ export default function DashboardOverview() {
         enablePhotoLocation={AI_PHOTO_LOCATION['StimmungWohlbefinden']}
       />
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="Eintrag löschen"
-        description="Dieser Eintrag wird unwiderruflich gelöscht."
-        onConfirm={handleDelete}
-        onClose={() => setDeleteTarget(null)}
-      />
     </div>
   );
 }
@@ -686,16 +657,13 @@ function SectionCard({ title, icon, onAdd, children }: { title: string; icon: Re
   );
 }
 
-function EntryRow({ left, onEdit, onDelete }: { left: React.ReactNode; onEdit: () => void; onDelete: () => void }) {
+function EntryRow({ left, onEdit }: { left: React.ReactNode; onEdit: () => void }) {
   return (
     <div className="flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-muted/50 transition-colors">
       <div className="min-w-0 flex-1">{left}</div>
       <div className="flex gap-1 shrink-0">
         <button onClick={onEdit} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
           <IconPencil size={13} />
-        </button>
-        <button onClick={onDelete} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-          <IconTrash size={13} />
         </button>
       </div>
     </div>
