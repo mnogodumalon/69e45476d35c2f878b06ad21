@@ -118,7 +118,7 @@ export default function DashboardOverview() {
         .filter(k => k.fields.messung_zeitpunkt?.startsWith(dateStr))
         .sort((a, b) => (b.fields.messung_zeitpunkt ?? '').localeCompare(a.fields.messung_zeitpunkt ?? ''))
         .at(0);
-      return { day: format(d, 'EEE', { locale: de }), wert: entry?.fields.gewicht_kg ?? null };
+      return { day: isToday(d) ? 'Heute' : format(d, 'EEE d.', { locale: de }), wert: entry?.fields.gewicht_kg ?? null };
     });
     return days;
   }, [koerpermesswerte]);
@@ -130,7 +130,7 @@ export default function DashboardOverview() {
       const total = ernaehrung
         .filter(e => e.fields.mahlzeit_zeitpunkt?.startsWith(dateStr))
         .reduce((sum, e) => sum + (e.fields.kalorien_aufnahme ?? 0), 0);
-      return { day: format(d, 'EEE', { locale: de }), kcal: total || null };
+      return { day: isToday(d) ? 'Heute' : format(d, 'EEE d.', { locale: de }), kcal: total || null };
     });
   }, [ernaehrung]);
 
@@ -139,7 +139,7 @@ export default function DashboardOverview() {
       const d = subDays(startOfDay(new Date()), 6 - i);
       const dateStr = format(d, 'yyyy-MM-dd');
       const entry = schlafprotokoll.find(s => s.fields.schlaf_datum === dateStr);
-      return { day: format(d, 'EEE', { locale: de }), std: entry?.fields.schlafdauer_stunden ?? null };
+      return { day: isToday(d) ? 'Heute' : format(d, 'EEE d.', { locale: de }), std: entry?.fields.schlafdauer_stunden ?? null };
     });
   }, [schlafprotokoll]);
 
@@ -722,9 +722,9 @@ function VitalTile({ label, value, unit }: { label: string; value: number | stri
 }
 
 function TrendChart({
-  title, icon, data, dataKey, color, unit, emptyText
+  title, icon, data, dataKey, color, unit
 }: {
-  title: string; icon: React.ReactNode; data: Record<string, unknown>[]; dataKey: string; color: string; unit: string; emptyText: string;
+  title: string; icon: React.ReactNode; data: Record<string, unknown>[]; dataKey: string; color: string; unit: string; emptyText?: string;
 }) {
   const hasData = data.some(d => d[dataKey] !== null);
   return (
@@ -732,29 +732,26 @@ function TrendChart({
       <div className="flex items-center gap-2 mb-4">
         {icon}
         <h3 className="text-sm font-semibold">{title}</h3>
+        {!hasData && <span className="text-xs text-muted-foreground ml-auto">Noch keine Daten</span>}
       </div>
-      {!hasData ? (
-        <div className="flex items-center justify-center h-40 text-xs text-muted-foreground">{emptyText}</div>
-      ) : (
-        <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id={`grad-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.15} />
-                <stop offset="95%" stopColor={color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-            <Tooltip
-              contentStyle={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
-              formatter={(val: unknown) => [`${val}${unit}`, title]}
-            />
-            <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} fill={`url(#grad-${dataKey})`} connectNulls dot={{ fill: color, r: 3 }} />
-          </AreaChart>
-        </ResponsiveContainer>
-      )}
+      <ResponsiveContainer width="100%" height={160}>
+        <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id={`grad-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.15} />
+              <stop offset="95%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
+            formatter={(val: unknown) => [`${val}${unit}`, title]}
+          />
+          <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} fill={`url(#grad-${dataKey})`} connectNulls dot={hasData ? { fill: color, r: 3 } : false} />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -766,7 +763,7 @@ function ActivitySummary({ aktivitaeten }: { aktivitaeten: Aktivitaeten[] }) {
       const dateStr = format(d, 'yyyy-MM-dd');
       const dayEntries = aktivitaeten.filter(a => a.fields.aktivitaet_zeitpunkt?.startsWith(dateStr));
       const min = dayEntries.reduce((s, a) => s + (a.fields.dauer_minuten ?? 0), 0);
-      return { day: format(d, 'EEE', { locale: de }), min: min || null, count: dayEntries.length };
+      return { day: isToday(d) ? 'Heute' : format(d, 'EEE d.', { locale: de }), min: min || null, count: dayEntries.length };
     });
   }, [aktivitaeten]);
 
@@ -776,29 +773,26 @@ function ActivitySummary({ aktivitaeten }: { aktivitaeten: Aktivitaeten[] }) {
       <div className="flex items-center gap-2 mb-4">
         <IconRun size={14} className="text-emerald-500 shrink-0" />
         <h3 className="text-sm font-semibold">Aktivitätsdauer (min)</h3>
+        {!hasData && <span className="text-xs text-muted-foreground ml-auto">Noch keine Daten</span>}
       </div>
-      {!hasData ? (
-        <div className="flex items-center justify-center h-40 text-xs text-muted-foreground">Keine Aktivitäten der letzten 7 Tage</div>
-      ) : (
-        <ResponsiveContainer width="100%" height={160}>
-          <AreaChart data={last7} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="grad-act" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
-            <Tooltip
-              contentStyle={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
-              formatter={(val: unknown) => [`${val} min`, 'Dauer']}
-            />
-            <Area type="monotone" dataKey="min" stroke="#10b981" strokeWidth={2} fill="url(#grad-act)" connectNulls dot={{ fill: '#10b981', r: 3 }} />
-          </AreaChart>
-        </ResponsiveContainer>
-      )}
+      <ResponsiveContainer width="100%" height={160}>
+        <AreaChart data={last7} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id="grad-act" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
+            formatter={(val: unknown) => [`${val} min`, 'Dauer']}
+          />
+          <Area type="monotone" dataKey="min" stroke="#10b981" strokeWidth={2} fill="url(#grad-act)" connectNulls dot={hasData ? { fill: '#10b981', r: 3 } : false} />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
