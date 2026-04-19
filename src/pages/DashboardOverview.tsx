@@ -166,6 +166,17 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6 pb-8">
+      {/* Intent Navigation */}
+      <a href="#/intents/taegliches-checkin" className="block bg-card border border-border border-l-4 border-l-primary rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3">
+          <IconActivity size={20} className="text-primary shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-foreground truncate">Täglicher Gesundheits-Check-in</p>
+            <p className="text-sm text-muted-foreground truncate">Körper · Aktivität · Ernährung · Schlaf · Stimmung in einem Schritt erfassen</p>
+          </div>
+          <IconChevronRight size={18} className="text-muted-foreground shrink-0" />
+        </div>
+      </a>
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>

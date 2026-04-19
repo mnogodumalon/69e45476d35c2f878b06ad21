@@ -1,9 +1,9 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { ActionsProvider } from '@/context/ActionsContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Layout } from '@/components/Layout';
 import DashboardOverview from '@/pages/DashboardOverview';
-import { WorkflowPlaceholders } from '@/components/WorkflowPlaceholders';
 import AdminPage from '@/pages/AdminPage';
 import KoerpermesswertePage from '@/pages/KoerpermesswertePage';
 import AktivitaetenPage from '@/pages/AktivitaetenPage';
@@ -13,6 +13,8 @@ import StimmungWohlbefindenPage from '@/pages/StimmungWohlbefindenPage';
 // <custom:imports>
 // </custom:imports>
 
+const TaeglichesCheckinPage = lazy(() => import('@/pages/intents/TaeglichesCheckinPage'));
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -20,7 +22,7 @@ export default function App() {
         <ActionsProvider>
           <Routes>
             <Route element={<Layout />}>
-              <Route index element={<><div className="mb-8"><WorkflowPlaceholders /></div><DashboardOverview /></>} />
+              <Route index element={<DashboardOverview />} />
               <Route path="koerpermesswerte" element={<KoerpermesswertePage />} />
               <Route path="aktivitaeten" element={<AktivitaetenPage />} />
               <Route path="ernaehrung" element={<ErnaehrungPage />} />
@@ -29,6 +31,7 @@ export default function App() {
               <Route path="admin" element={<AdminPage />} />
               {/* <custom:routes> */}
               {/* </custom:routes> */}
+              <Route path="intents/taegliches-checkin" element={<Suspense fallback={null}><TaeglichesCheckinPage /></Suspense>} />
             </Route>
           </Routes>
         </ActionsProvider>
